@@ -1,0 +1,52 @@
+<head>
+  <script type="text/javascript" src="spring.js"></script>
+</head>
+
+<body>
+  <!-- <script>
+    createModule().then((module) => {
+      console.log(module);
+    });
+  </script> -->
+  <script>
+    var xhttp = new XMLHttpRequest();
+
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        //  document.getElementById("demo").innerHTML = xhttp.responseText;
+        const buf = xhttp.response;
+        WebAssembly.compile(buf)
+          .then((module) => {
+            const res = WebAssembly.instantiate(buf, {
+              wasi_snapshot_preview1: {
+                proc_exit: function () { console.log("exit"); },
+                args_sizes_get: function () { console.log("sizes"); },
+                args_get: function () { console.log("get"); },
+                fd_write: function () { console.log(arguments); },
+              },
+            })
+              .then((res) => {
+                const {
+                  UpdateSprings,
+                  MakeSpringSet,
+                  memory,
+                  malloc } = res.instance.exports;
+                console.log("Loaded.");
+                const outputPtr = malloc(64 * 4);
+                const springSet = MakeSpringSet(64);
+                console.log(outputPtr);
+                for (let i = 0; i < 100; ++i) {
+                  UpdateSprings(springSet, 0.5 * i % 2, outputPtr);
+                }
+                const outputArray = new Float32Array(
+                  memory.buffer, outputPtr, 64);
+                console.log(outputArray);
+              });
+          });
+      }
+    };
+    xhttp.open("GET", "spring.wasm", true);
+    xhttp.responseType = 'arraybuffer';
+    xhttp.send();
+  </script>
+</body>
